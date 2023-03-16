@@ -2,7 +2,8 @@ package com.att.web.configuarations;
 
 import com.att.dao.configurations.ConfigurationDao;
 import com.att.data.configurations.ConfigValue;
-import com.att.data.configurations.ConfigValues;
+import java.util.List;
+import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +20,9 @@ public class ConfigurationController {
 
   @RequestMapping(value = "/{yearMonthNumber}", method = RequestMethod.GET)
   @ResponseBody
-  public ConfigValues getConfigurationsForYearMonth(
+  public List<ConfigValue> getConfigurationsForYearMonth(
       @PathVariable("yearMonthNumber") String yearMonth) {
-    return new ConfigValues(dao.getConfigurationsForYearMonth(yearMonth));
+    return dao.getConfigurationsForYearMonth(yearMonth);
   }
 
   @RequestMapping(value = "/{yearMonthNumber}", method = RequestMethod.DELETE)
@@ -36,9 +37,9 @@ public class ConfigurationController {
   }
 
   @RequestMapping(value = "/{yearMonthNumber}", method = {RequestMethod.POST, RequestMethod.PUT})
-  public void addConfigurationForYearMonth(
+  public ConfigValue addConfigurationForYearMonth(
       @PathVariable("yearMonthNumber") String yearMonth,
-      @RequestBody ConfigValue value) {
-    dao.addConfiguration(yearMonth, value);
+      @Valid @RequestBody ConfigValue value) {
+    return dao.addConfiguration(yearMonth, value);
   }
 }

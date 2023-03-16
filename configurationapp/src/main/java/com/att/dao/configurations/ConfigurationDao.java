@@ -1,6 +1,9 @@
 package com.att.dao.configurations;
 
 import com.att.data.configurations.ConfigValue;
+import com.att.validation.ValidationError;
+import com.att.validation.ValidationException;
+import com.att.web.configuarations.ConfigurationException;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -39,7 +42,9 @@ public class ConfigurationDao {
         return result == null ? new ArrayList<>() : result;
     }
 
-    public void addConfiguration(String yearMonth, ConfigValue value) {
+    public ConfigValue addConfiguration(String yearMonth, ConfigValue value) {
+        // Some of this logic becomes a little cleaner when using a DB as we can leverage DB constraints and
+        // the associated exceptions to drive messaging back to the user (ie, database integrity).
         int newId = idProvider.getNextId();
         value.setConfigId(newId);
 
@@ -49,9 +54,18 @@ public class ConfigurationDao {
             configs.add(value);
             currentConfigurations.put(yearMonth,configs);
         }else{
-            value.setConfigId(newId);
-            current.add(value);
+            if(checkExist(current, value)){
+                throw new ValidationException(new ValidationError("configName","Configuration value already exists"));
+            }else{
+                value.setConfigId(newId);
+                current.add(value);
+            }
         }
+        return value;
+    }
+
+    private boolean checkExist(List<ConfigValue> current, ConfigValue value) {
+        return current.stream().filter(p->p.getConfigName().equals(value.getConfigName())).findFirst().isPresent();
     }
 
     public void removeAllConfigurationsForYearMonth(String yearMonth) {
@@ -61,7 +75,8 @@ public class ConfigurationDao {
     public void removeAllConfigurationsForYearMonthId(String yearMonth, int id) {
         List<ConfigValue> current = currentConfigurations.get(yearMonth);
         if(current == null){
-            throw new RuntimeException("Invalid Time Period");
+            // The UI does not allow this scenario; this demonstrates how to provide custom error messages when using CURL or Postman
+            throw new ConfigurationException("Invalid Time Period");
         }else{
             Optional<ConfigValue> v = current.stream().filter(cv -> cv.getConfigId() == id).findFirst();
             v.ifPresent(current::remove);
